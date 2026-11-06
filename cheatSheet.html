@@ -1,0 +1,1570 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cheat Sheet</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,400;0,700;1,400;1,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inconsolata:wdth,wght@75..100,400..700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<style>
+  @page { size: letter; margin: 0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #ddd; font: 14px system-ui, sans-serif;
+         -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .wrap { display: flex; flex-wrap: wrap; gap: 16px; padding: 16px; align-items: flex-start; }
+  .ui { flex: 1 1 320px; max-width: 560px; background: #fff; border-radius: 8px; padding: 12px;
+        display: flex; flex-direction: column; gap: 10px; }
+  /* the sheet preview: a zoom bar, then the pages. Zooming scales only the pages, never the menu or the printout */
+  #view { flex: 1 1 100%; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .zoombar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; background: #fff; border-radius: 8px;
+             padding: 6px 8px; position: sticky; top: 8px; z-index: 6; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+  .zoombar button { font: inherit; font-weight: 600; padding: 4px 10px; cursor: pointer; }
+  .zoombar .zstep { min-width: 2.4em; }
+  #zPct { min-width: 4.8em; font-variant-numeric: tabular-nums; }
+  .zoombar button[aria-pressed="true"] { outline: 2px solid #1565c0; outline-offset: 1px; }
+  @media (hover: none) { .zoombar .hint { display: none; } }
+  /* the 8px padding (room for the page shadow) hangs out into the gaps, so the page lines up with the zoom bar.
+     The hand says you can drag the sheet around (over the text, tap-to-jump keeps its pointing finger) */
+  #scroller { position: relative; padding: 8px; margin: 0 -8px; overflow-x: auto; overflow-y: hidden; cursor: grab; }
+  .panning, .panning * { cursor: grabbing !important; user-select: none !important; }
+  /* as big as the zoomed pages, so the scroll bars are right. Kept at the left (not centered) so that zooming in
+     can always keep the spot under the pointer in place */
+  #zoomer { position: relative; }
+  @media screen and (max-width: 1199.98px) { html { scrollbar-gutter: stable; } }
+  /* wide screens: menu on the left, the pages scroll on their own on the right */
+  @media screen and (min-width: 1200px) {
+    .wrap { flex-wrap: nowrap; }
+    /* as wide as before: whatever a 100% page (plus the gap and the pages' scroll bar) leaves, 320 to 560px */
+    .ui { flex: none; width: clamp(320px, calc(100% - 8.5in - 18px - var(--sbw, 17px)), 560px);
+          position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; }
+    #view { flex: 1 1 0; height: calc(100vh - 32px); position: sticky; top: 16px; }
+    .zoombar { position: static; box-shadow: none; }
+    #scroller { flex: 1 1 0; min-height: 0; overflow: auto; scrollbar-gutter: stable; }
+  }
+  .ui textarea { width: 100%; height: 38vh; resize: vertical; font: 12px/1.4 Consolas, Menlo, monospace; }
+  .srcwrap { position: relative; }
+  .srcwrap textarea { display: block; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+  .ui input[type=number] { width: 4.5em; }
+  .ui input[type=text] { width: 100%; padding: 3px 6px; font: inherit; }
+  /* phones and tablets: 16px boxes, so iPhone doesn't zoom in every time the cursor jumps into one */
+  @media (hover: none) and (pointer: coarse) {
+    .ui textarea, .ui input[type=text], .ui input[type=number], .ui select { font-size: 16px; }
+  }
+  .ui button { font: inherit; font-weight: 600; padding: 6px 14px; cursor: pointer; }
+  .ui details { border-top: 1px solid #ddd; padding-top: 8px; }
+  .ui summary { cursor: pointer; font-weight: 600; }
+  .ui details > div { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+  #status { font-weight: 600; }
+  #status.ok { color: #17803d; }
+  #status.bad { color: #b3261e; }
+  .hint { color: #555; font-size: 12px; line-height: 1.5; }
+  #watchInfo:empty { display: none; }
+  #out { position: absolute; left: 0; top: 0; width: max-content; transform-origin: 0 0;
+         display: flex; flex-direction: column; gap: 16px; }
+  .page { width: 8.5in; height: 10.98in; padding: .2in; background: #fff; overflow: hidden;
+          box-shadow: 0 1px 6px rgba(0,0,0,.3); }
+  .titlebar { display: flex; justify-content: space-between; align-items: flex-end; gap: 1em;
+              height: .2in; margin-bottom: .04in; border-bottom: 1.2px solid #000;
+              font: 700 9pt/1.1 var(--ff); white-space: nowrap; overflow: hidden; }
+  .titlebar .t { overflow: hidden; text-overflow: ellipsis; }
+  .titlebar .pn { flex: none; font-weight: 400; }
+  .viewport { overflow: hidden; }
+  .sheet { column-fill: auto; column-rule: .75px solid #555; overflow: hidden; color: #000;
+           font-family: var(--ff); font-size: var(--fs); line-height: var(--lh); overflow-wrap: anywhere; }
+  .sheet > :first-child { margin-top: 0; }
+  .sheet h1, .sheet h2, .sheet h3, .sheet h4, .sheet h5, .sheet h6 {
+    margin: .3em 0 .08em; line-height: 1.12; font-weight: 700; break-after: avoid; }
+  .sheet h1 { font-size: calc(1em + .45em * var(--hs, 1)); border-top: 1.2px solid #000; padding-top: .12em; }
+  .sheet > h1:first-child { border-top: 0; padding-top: 0; }
+  .sheet h2 { font-size: calc(1em + .22em * var(--hs, 1)); }
+  .sheet h3 { font-size: calc(1em + .08em * var(--hs, 1)); }
+  .sheet h4, .sheet h5, .sheet h6 { font-size: 1em; }
+  .sheet p { margin: .08em 0; }
+  /* bullets sit at the column edge; wrapped lines step in only by --li */
+  .sheet ul, .sheet ol { margin: .08em 0; padding-left: var(--li, .35em); list-style-position: inside; }
+  .sheet ul > li::marker { content: "\2022\00a0"; }
+  .sheet ul ul > li::marker { content: "\25E6\00a0"; }
+  .sheet li { text-indent: calc(-1 * var(--li, .35em)); }
+  .sheet li > * { text-indent: 0; }
+  .sheet li > p { margin: 0; }
+  .sheet li > p:first-child { display: inline; }
+  .sheet li > ul, .sheet li > ol { margin: 0; padding-left: calc(var(--li, .35em) + .5em); }
+  .sheet strong, .sheet .term { font-weight: 700; }
+  .sheet mark { background: #fff176; color: inherit; padding: 0 .1em; border-radius: 2px; }
+  .sheet code { font-family: Inconsolata, "Roboto Mono", Consolas, Menlo, monospace; font-size: .9em;
+                background: #eee; padding: 0 .15em; border-radius: 2px; }
+  .sheet pre { font-family: Inconsolata, "Roboto Mono", Consolas, Menlo, monospace; font-size: .9em;
+               margin: .12em 0; padding: .1em .3em; background: #f3f3f3; border-left: 2px solid #999; white-space: pre-wrap; }
+  .sheet pre code { font-size: 1em; background: none; padding: 0; }
+  /* ASCII drawings: never wrap, narrow letters, kept in one piece and with the line above them */
+  .sheet pre.diagram { white-space: pre; line-height: 1.1; font-stretch: 80%; background: none; border: 0;
+                       padding: .1em 0; break-inside: avoid; }
+  .sheet :has(+ pre.diagram) { break-after: avoid; }
+  .sheet table { border-collapse: collapse; width: 100%; margin: .15em 0; line-height: 1.12;
+                 overflow-wrap: break-word; font-variant-numeric: tabular-nums; }
+  .sheet table.squeeze { overflow-wrap: anywhere; }
+  .sheet th, .sheet td { border: .5px solid #777; padding: .02em .22em; vertical-align: top; }
+  .sheet th { background: #e2e2e2; }
+  .sheet th:not([align]) { text-align: left; }
+  .sheet tbody tr:nth-child(even) td { background: #f4f4f4; }
+  .sheet tr, .sheet img, .sheet .katex-display { break-inside: avoid; }
+  .sheet blockquote { margin: .12em 0; padding-left: .4em; border-left: 2px solid #999; }
+  .sheet hr { border: 0; border-top: .75px solid #555; margin: .2em 0; }
+  .sheet img { display: block; max-width: 100%; margin: .15em auto; }
+  .sheet a { color: inherit; text-decoration: none; }
+  .sheet .katex { font-size: 1.05em; }
+  .sheet .katex-display { margin: .12em 0; }
+  .sheet .colbreak { break-before: column; }
+  .sheet .end { height: 1px; }
+  /* tap the sheet -> the cursor goes there in your notes; the flash marks the spot */
+  body.tapjump .sheet { cursor: pointer; }
+  .sheet { -webkit-tap-highlight-color: transparent; }
+  .flash { position: absolute; z-index: 5; pointer-events: none; border-radius: 3px;
+           background: rgba(255, 213, 0, .45); box-shadow: 0 0 0 2px rgba(245, 124, 0, .85);
+           animation: flash 1.8s ease-out forwards; }
+  @keyframes flash { 0%, 50% { opacity: 1; } 100% { opacity: 0; } }
+  #locInfo:empty { display: none; }
+  @media print {
+    body { background: #fff; }
+    .ui, .flash, .zoombar { display: none !important; }
+    .wrap, #out { display: block; padding: 0; }
+    #view, #scroller, #zoomer, #out { display: block; position: static; padding: 0; margin: 0; overflow: visible;
+                                      width: auto !important; height: auto !important; transform: none !important; }
+    .page { box-shadow: none; break-after: page; }
+    .page:last-child { break-after: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ui">
+    <div class="row">
+      <b>Your notes:</b>
+      <input type="file" id="file" accept=".md,.markdown,.txt,text/plain,text/markdown">
+      <button id="watch" type="button" hidden>Open &amp; watch file</button>
+    </div>
+    <div id="watchInfo" class="hint"></div>
+    <div class="srcwrap"><textarea id="src" spellcheck="false"># Unit 4 - Scheduling
+Critical path: longest path through the network; any delay on it delays the project
+Slack: how long an activity can slip without delaying the project
+Estimates: size first, then effort, then duration and cost
+
+## Estimation techniques
+- Analogy: compare with similar past projects
+- PERT: $E=\frac{O+4M+P}{6}$
+- Delphi: experts estimate alone, compare, repeat until they agree
+
+## Earned value
+| Term | Meaning | Formula |
+|---|---|---|
+| PV | planned value | budget of work scheduled |
+| EV | earned value | % done x budget |
+| AC | actual cost | money spent so far |
+| CPI | cost performance | $EV/AC$ |
+| SPI | schedule performance | $EV/PV$ |
+
+# Unit 5 - Quality
+Verification: did we build it right?
+Validation: did we build the right thing?
+**Cost of quality** = prevention + appraisal + failure costs
+</textarea></div>
+    <div class="row">
+      <button id="locate" type="button" title="Scroll the sheet to where the cursor is in your notes (Ctrl+Enter)">Show on sheet</button>
+      <label><input type="checkbox" id="tapjump" checked> Tap the sheet to put the cursor there</label>
+      <span id="locInfo" class="hint"></span>
+    </div>
+    <input type="text" id="title" placeholder="Title line, e.g. Your Name - Course - Final Exam (optional)">
+    <div class="row">
+      <label>Pages <select id="pagesN"><option value="1">1 side</option><option value="2" selected>2 sides</option></select></label>
+      <label>Columns <select id="cols"><option value="auto">Auto</option><option>2</option><option>3</option><option selected>4</option><option>5</option></select></label>
+      <label>Font <select id="font">
+        <option value='"Roboto Condensed", "Arial Narrow", sans-serif' selected>Roboto Condensed (fits most)</option>
+        <option value='"Arial Narrow", "Roboto Condensed", sans-serif'>Arial Narrow</option>
+        <option value='Inter, Arial, sans-serif'>Inter (most readable)</option>
+        <option value='Calibri, Carlito, Arial, sans-serif'>Calibri</option>
+        <option value='Arial, Helvetica, sans-serif'>Arial</option>
+        <option value='"Times New Roman", Times, serif'>Times New Roman</option>
+      </select></label>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="auto" checked> Auto-fit size</label>
+      <label>Size <input type="number" id="size" value="7" min="3" max="20" step="0.05"> pt</label>
+      <label>Margins <input type="number" id="margin" value="0.2" min="0" max="1.5" step="0.05"> in</label>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="colors" checked> Colors</label>
+      <label><input type="checkbox" id="duo"> Only blue + red (blue headings, red terms)</label>
+    </div>
+    <div class="row">
+      <button id="print">Print / Save as PDF</button>
+      <button id="toMd" type="button">Convert notes to Markdown</button>
+    </div>
+    <div id="status">Loading...</div>
+    <details>
+      <summary>More options</summary>
+      <div>
+        <div class="row">
+          <label>Line spacing <input type="number" id="lh" value="1.15" min="0.9" max="2" step="0.05"></label>
+          <label>Bullet indent <input type="number" id="indent" value="0.35" min="0" max="2" step="0.05"> em</label>
+          <label>Headings <select id="hsize"><option value="1" selected>Large</option><option value="0.6">Medium</option><option value="0.3">Small</option></select></label>
+        </div>
+        <div class="row">
+          <label><input type="checkbox" id="tidy" checked> Tidy plain text</label>
+          <label><input type="checkbox" id="terms" checked> Color terms before ":"</label>
+          <label><input type="checkbox" id="pretty" checked> Real arrows (-&gt; becomes &rarr;)</label>
+          <label><input type="checkbox" id="breaks" checked> Keep line breaks</label>
+          <label><input type="checkbox" id="math" checked> LaTeX math ($...$)</label>
+          <label><input type="checkbox" id="same"> Same font size on both sides (the back part follows right after the front, so both sides fill)</label>
+        </div>
+        <div class="hint">
+          <b>Plain-text notes work as-is:</b> <code>=====</code> banners and ALL-CAPS lines become headings,
+          <code>----+----</code> tables and space-aligned tables become real tables, ASCII drawings stay lined up, and lines wrapped at
+          ~80 characters get re-joined. "Convert notes to Markdown" shows the cleaned-up version so you can fix anything by hand.<br>
+          <code>==text==</code> highlights. A banner starting with <code>BACK</code> (or a line with only <code>\pagebreak</code>)
+          starts side 2; <code>\columnbreak</code> starts a new column. <code>Term: definition</code> lines get the term colored,
+          and in <code>= formula [law: note]</code> just the law name is colored.
+          Tables can also be Markdown or pasted from Excel, Google Docs or Word. <code>![](graph.png)</code> adds a picture from this folder.<br>
+          <b>Tap (or click) the sheet</b> to put the cursor at that spot in your notes. <b>Show on sheet</b> (or Ctrl+Enter
+          in the notes) goes the other way: it scrolls to the cursor's spot on the sheet and flashes it.<br>
+          <b>Zoom the sheet</b> with the bar above it, or Ctrl + scroll (pinch on a trackpad) over the sheet. The menu
+          stays the same size, and the zoom never changes the PDF. <b>Drag the sheet</b> with the left or middle mouse
+          button to move around (the right button works too on Windows); a click without moving still jumps to your
+          notes, and Shift + drag selects text.
+        </div>
+      </div>
+    </details>
+  </div>
+  <div id="view">
+    <div class="zoombar" id="zoombar" role="toolbar" aria-label="Sheet zoom">
+      <button type="button" id="zOut" class="zstep" title="Zoom out" aria-label="Zoom out">&minus;</button>
+      <button type="button" id="zPct" title="Back to 100%">100%</button>
+      <button type="button" id="zIn" class="zstep" title="Zoom in" aria-label="Zoom in">+</button>
+      <button type="button" id="zWidth" aria-pressed="false" title="Make the page as wide as this area">Fit width</button>
+      <button type="button" id="zPage" aria-pressed="false" title="Show one whole page">Whole page</button>
+      <span class="hint">Drag the sheet to move around. Ctrl + scroll or pinch zooms. Only the preview zooms, not the PDF.</span>
+    </div>
+    <div id="scroller"><div id="zoomer"><div id="out"></div></div></div>
+  </div>
+</div>
+
+<script>
+const ids = ['src','file','watch','watchInfo','title','pagesN','cols','font','auto','size','margin','colors','duo',
+             'lh','indent','hsize','tidy','terms','pretty','breaks','math','same','print','toMd','status','out',
+             'tapjump','locate','locInfo','view','zoombar','scroller','zoomer','zOut','zPct','zIn','zWidth','zPage'];
+const els = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+const GAP = 0.1;        // inches between columns
+const PAGE_H = 10.98;   // a hair under 11in so the printer never adds a blank page
+const TITLE_H = 0.24;   // inches used by the title line, when there is one
+const MIN_PT = 3, MAX_PT = 14;
+const KEY = 'cheatsheet-fitter-v2';
+const PALETTE = ['#c2185b', '#1565c0', '#2e7d32', '#6a1b9a', '#d84315', '#00796b', '#c62828', '#283593'];
+const BLUE = '#1565c0', RED = '#c62828';
+let sheets = [], parts = [], split = false, lastN = 4, ticket = 0, timer = null, pending = Promise.resolve();
+let watched = null, stamp = 0;
+let rendered = null;   // the notes the sheet was last built from, so a tap can be traced back: { src, starts, math }
+
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+// Where a line came from in your notes is kept as [first, last] line number (null = added by the cleanup).
+const merge = (x, y) => !x ? y : !y ? x : [Math.min(x[0], y[0]), Math.max(x[1], y[1])];
+const num = (el, def, lo, hi) => { const v = parseFloat(el.value); return clamp(isNaN(v) ? def : v, lo, hi); };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------- cleanup for plain-text notes ---------- */
+const TICKS = '`'.repeat(3);
+const RULE = /^\s*([=\-*#_])\1{4,}\s*$/;                       // =====, ----- and similar lines
+const SEP = /^\s*\+?(?:[-=:]{2,}\+)+[-=:]{2,}\+?(?:\s{2,}\+?(?:[-=:]{2,}\+)+[-=:]{2,}\+?)*\s*$/;  // ----+---- (side by side ok)
+const GFM = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/;       // |---|---| line of a Markdown table
+const DASHES = /^\s*-{2,}(?: {2,}-{2,})+\s*$/;                    // ----  ---- line under a table lined up with spaces
+const FENCE = /^\s*(`{3}|~{3})/;
+const LIST = /^\s*([-*+]|\d{1,9}[.)])\s+\S/;
+const ART = /[-=]{2,}[>+|\/\\]|[<+|][-=]{2,}|\+-|-\+|\|\s{2,}\S|\S\s{2,}\||^\s*[|^+\/\\]+(\s+[|^+\/\\]+)*\s*$/;  // boxes, wires, arrows
+const isProse = l => !ART.test(l) && (l.match(/\b[A-Za-z][a-z']+\b/g) || []).length >= 3;
+const isLabel = l => /\S\s{3,}\S/.test(l.trim()) && !/:\s*$/.test(l) && !isProse(l) && !LIST.test(l) && !/^\s*#/.test(l);
+const isBack = t => /^back(\s*side)?\s*([:\-]|$)/i.test(t);
+
+function isCapsHeading(t) {
+  if (t.length > 70 || /[|`$]|^[#>*+<-]|^\d+[.)]\s|[.,;]$/.test(t)) return false;
+  const letters = t.match(/\p{L}/gu) || [], upper = t.match(/\p{Lu}/gu) || [];
+  return letters.length >= 3 && upper.length >= 0.7 * letters.length;
+}
+
+// map, if given, gets one entry per line of the result: the line(s) of your notes it came from.
+function tidy(src, map) {
+  const L = src.split('\n'), a = [], o = [];
+  const put = (from, ...lines) => lines.forEach(l => { a.push(l); o.push(from); });
+  let fence = false;
+  for (let i = 0; i < L.length; i++) {
+    const line = L[i], t = line.trim(), here = [i, i];
+    const last = a.length ? a[a.length - 1].trim() : '';
+    if (FENCE.test(line)) { fence = !fence; put(here, line); continue; }
+    if (fence) { put(here, line); continue; }
+    // banner: a ===== line, a title, another ===== line
+    if (RULE.test(line) && (L[i + 1] || '').trim() && !RULE.test(L[i + 1]) && RULE.test(L[i + 2] || '')) {
+      const title = L[i + 1].trim();
+      if (isBack(title)) put(null, '', '\\pagebreak');
+      put(null, '');
+      put([i + 1, i + 1], (t[0] === '=' ? '# ' : '## ') + title);
+      put(null, '');
+      i += 2; continue;
+    }
+    // a Markdown table is already fine
+    if (line.includes('|') && GFM.test(L[i + 1] || '')) {
+      let j = i;
+      for (; j < L.length && L[j].includes('|'); j++) put([j, j], L[j]);
+      i = j - 1; continue;
+    }
+    // top border of a boxed table (+----+----+)
+    if (SEP.test(line) && (L[i + 1] || '').includes('|') && SEP.test(L[i + 2] || '')) continue;
+    // text table: a header row with | and a ----+---- line under it (two tables side by side work too)
+    if (line.includes('|') && SEP.test(L[i + 1] || '')) {
+      const sepLine = L[i + 1], boxed = sepLine.trim()[0] === '+';
+      const cuts = [...sepLine.matchAll(/\S(\s{2,})(?=\S)/g)].map(m => m.index + 1 + (m[1].length >> 1));
+      const cells = l => {
+        const pieces = [];
+        let from = 0;
+        for (const c of cuts) { pieces.push(l.slice(from, c)); from = c; }
+        pieces.push(l.slice(from));
+        return pieces.flatMap(p => (boxed ? p.trim().replace(/^\||\|$/g, '') : p).split('|').map(c => c.trim()));
+      };
+      const head = cells(line), body = [], from = [];
+      let j = i + 2;
+      for (; j < L.length; j++) {
+        if (SEP.test(L[j])) continue;
+        if (!L[j].includes('|')) break;
+        const r = cells(L[j]), prev = body[body.length - 1];
+        if (prev && !r[0]) {   // empty first cell = this row wraps the one above
+          body[body.length - 1] = Array.from({ length: Math.max(prev.length, r.length) },
+            (_, k) => ((prev[k] || '') + ' ' + (r[k] || '')).trim());
+          from[from.length - 1] = merge(from[from.length - 1], [j, j]);
+        } else { body.push(r); from.push([j, j]); }
+      }
+      const n = Math.max((sepLine.match(/[-=:]{2,}/g) || []).length, head.length, ...body.map(r => r.length));
+      const row = r => '| ' + Array.from({ length: n }, (_, k) => r[k] || ' ').join(' | ') + ' |';
+      put(null, '');
+      put(here, row(head));
+      put([i + 1, i + 1], '|' + ' --- |'.repeat(n));
+      body.forEach((r, k) => put(from[k], row(r)));
+      put(null, '');
+      i = j - 1; continue;
+    }
+    // text table lined up with spaces: a header, a ----  ---- line, then the rows
+    if (t && DASHES.test(L[i + 1] || '')) {
+      const sep = L[i + 1], ind = sep.length - sep.trimStart().length;
+      const starts = [...sep.matchAll(/-+/g)].map(m => m.index);
+      const pieces = l => [...l.matchAll(/\S+(?: \S+)*/g)];            // text between gaps of 2+ spaces
+      const fits = l => pieces(l).every(m => starts.includes(m.index));
+      const cells = l => {
+        const r = starts.map(() => '');
+        for (const m of pieces(l)) {
+          let k = 0;
+          while (k + 1 < starts.length && starts[k + 1] <= m.index) k++;
+          r[k] = (r[k] + ' ' + m[0]).trim();
+        }
+        return r;
+      };
+      let j = i + 2, gaps = false;
+      for (; j < L.length; j++) {
+        if (!L[j].trim()) {                                            // blank line: go on only if another row follows
+          const n = L[j + 1] || '';
+          if (n.trim() && n.length - n.trimStart().length === ind && fits(n) && !DASHES.test(L[j + 2] || '')) { gaps = true; continue; }
+          break;
+        }
+        if (L[j].length - L[j].trimStart().length < ind || !fits(L[j]) || DASHES.test(L[j + 1] || '')) break;
+      }
+      // rows split by blank lines: each group of lines is one row; otherwise an empty first cell wraps the row above
+      const body = [], from = [];
+      for (let k = i + 2, inRow = false; k < j; k++) {
+        if (!L[k].trim()) { inRow = false; continue; }
+        const r = cells(L[k]), prev = body[body.length - 1];
+        if (prev && (gaps ? inRow : !r[0])) {
+          r.forEach((c, x) => { if (c) prev[x] = (prev[x] + ' ' + c).trim(); });
+          from[from.length - 1] = merge(from[from.length - 1], [k, k]);
+        } else { body.push(r); from.push([k, k]); }
+        inRow = true;
+      }
+      const row = r => '| ' + r.map(c => c.replace(/\|/g, '\\|') || ' ').join(' | ') + ' |';
+      put(null, '');
+      put(here, row(cells(line)));
+      put([i + 1, i + 1], '|' + ' --- |'.repeat(starts.length));
+      body.forEach((r, k) => put(from[k], row(r)));
+      put(null, '');
+      i = j - 1; continue;
+    }
+    // ASCII drawing (boxes, wires, arrows): keep it as one block, lined up in monospace
+    if (ART.test(line) && !LIST.test(line) && !/^\s*#/.test(line)) {
+      const block = [], from = [];
+      while (a.length && isLabel(a[a.length - 1])) { block.unshift(a.pop()); from.unshift(o.pop()); }   // labels right above it
+      block.push(line); from.push(here);
+      let j = i + 1;
+      while (j < L.length && L[j].trim() && !isProse(L[j]) && (ART.test(L[j]) || !LIST.test(L[j]))
+             && !/^\s*#/.test(L[j]) && !FENCE.test(L[j])) { block.push(L[j]); from.push([j, j]); j++; }
+      const cut = Math.min(...block.map(l => l.length - l.trimStart().length));
+      put(null, '', TICKS + 'diagram');
+      block.forEach((l, k) => put(from[k], l.slice(cut).trimEnd()));
+      put(null, TICKS, '');
+      i = j - 1; continue;
+    }
+    if (RULE.test(line)) {                       // a rule line on its own
+      if (last.startsWith('#')) continue;         // underline of a heading made above
+      if (last && /^[=-]/.test(t)) put(here, line);  // "Title" + "=====" is already a heading
+      else { put(null, ''); put(here, '---'); put(null, ''); }
+      continue;
+    }
+    if (!last && isCapsHeading(t)) {              // an ALL-CAPS line on its own -> subheading
+      if (isBack(t)) put(null, '\\pagebreak', '');
+      put(here, '## ' + t);
+      continue;
+    }
+    put(here, line);
+  }
+  return unwrap(a, o, map);
+}
+
+// Re-join lines that were hard-wrapped, but keep lines that start something new.
+// O says where each line came from; joined lines come from all the lines joined.
+function unwrap(L, O, map) {
+  const structural = t => /^(#|\||`{3}|~{3}|\\(page|column)break)/.test(t) || RULE.test(t);
+  const isBlock = t => structural(t) || /^(>|<|\$\$|[-*+]\s|\d{1,9}[.)]\s)/.test(t) || /\S\t/.test(t);
+  const termStart = t => /^[\p{Lu}\p{N}][^:]{0,38}:\s/u.test(t);
+  const lens = [], prose = [];
+  let f = false;
+  for (const l of L) {
+    if (FENCE.test(l)) f = !f;
+    else if (!f && l.trim() && !structural(l.trim())) {
+      lens.push(l.trimEnd().length);
+      if (!/^( {4}|\t)/.test(l)) prose.push(l.trimEnd().length);   // indented code doesn't show where you wrapped
+    }
+  }
+  const max = Math.max(0, ...(prose.length ? prose : lens)), wrapped = max >= 65 && max <= 160, T = 0.8 * max;
+  const out = [], oo = [];
+  let fence = false, joinable = false, isList = false, base = 0, ci = 0, lastLen = 0, lastText = '';
+  for (let k = 0; k < L.length; k++) {
+    const line = L[k], t = line.trim(), ind = line.length - line.trimStart().length;
+    const isFence = FENCE.test(line);
+    if (isFence) fence = !fence;
+    if (isFence || fence || !t) { out.push(line); oo.push(O[k]); joinable = false; continue; }
+    const block = isBlock(t);
+    if (joinable && !block && !termStart(t) && ind <= ci) {
+      const listCont = isList && ind > base;
+      const wrapCont = wrapped && lastLen >= T && (!/[.!?]$/.test(lastText) || /^[a-z(=,]/.test(t));
+      if (listCont || wrapCont) {
+        out[out.length - 1] += ' ' + t;
+        oo[oo.length - 1] = merge(oo[oo.length - 1], O[k]);
+        lastLen = line.trimEnd().length; lastText = t;
+        continue;
+      }
+    }
+    out.push(line); oo.push(O[k]);
+    lastLen = line.trimEnd().length; lastText = t;
+    const lm = line.match(/^\s*([-*+]|\d{1,9}[.)])\s+/);
+    if (lm) { isList = true; base = ind; ci = lm[0].length; joinable = true; }
+    else if (isList && !block && ind > base && ind <= ci) joinable = true;  // kept line inside the same list item
+    else { isList = false; base = ci = ind; joinable = !block && ind < 4; }
+  }
+  if (map) for (const x of oo) map.push(x);
+  return out.join('\n');
+}
+
+/* ---------- page layout and fitting ---------- */
+function geometry() {
+  const P = els.pagesN.value === '1' ? 1 : 2;
+  const m = num(els.margin, 0.2, 0, 1.5);
+  const th = els.title.value.trim() ? TITLE_H : 0;
+  return { P, m, th, W: 8.5 - 2 * m, H: PAGE_H - 2 * m - th };
+}
+
+function buildPages(P) {
+  els.out.innerHTML = '';
+  sheets = [];
+  for (let i = 0; i < P; i++) {
+    const page = document.createElement('div');
+    page.className = 'page';
+    page.innerHTML = '<div class="titlebar"><span class="t"></span><span class="pn"></span></div>' +
+                     '<div class="viewport"><div class="sheet"></div></div>';
+    els.out.appendChild(page);
+    sheets.push(page.querySelector('.sheet'));
+  }
+}
+
+// Text flows through a wide multi-column strip and each page is a window onto part of it,
+// so the preview, the fit check and the printout all use the same layout.
+// With a page break, the front and the back each get their own one-page strip.
+function applyLayout(N) {
+  const { P, m, th, W, H } = geometry();
+  els.out.querySelectorAll('.page').forEach((p, i) => {
+    p.style.padding = m + 'in';
+    const tb = p.querySelector('.titlebar');
+    tb.style.display = th ? '' : 'none';
+    tb.querySelector('.t').textContent = els.title.value.trim();
+    tb.querySelector('.pn').textContent = P > 1 ? (i + 1) + '/' + P : '';
+  });
+  els.out.querySelectorAll('.viewport').forEach(v => { v.style.width = W + 'in'; v.style.height = H + 'in'; });
+  sheets.forEach((sh, i) => {
+    const span = split ? 1 : P, offset = split ? 0 : i;
+    sh.style.width = (span * W + (span - 1) * GAP) + 'in';
+    sh.style.height = H + 'in';
+    sh.style.columnCount = String(span * N);
+    sh.style.columnGap = GAP + 'in';
+    sh.style.marginLeft = (-offset * (W + GAP)) + 'in';
+  });
+}
+
+const setSize = (el, pt) => el.style.setProperty('--fs', pt + 'pt');
+
+function measure(part, N) {
+  const total = part.span * N;
+  const sr = part.el.getBoundingClientRect();
+  const er = part.el.querySelector('.end').getBoundingClientRect();
+  const z = shown.z;   // the preview may be zoomed: on-screen sizes go back to real (100%) ones
+  const stride = (sr.width / z + GAP * 96) / total;
+  const col = Math.floor(((er.left - sr.left) / z + 1) / stride);
+  return { fits: col < total, used: col + 1, total };
+}
+
+// Tables shrink up to 20% before they wrap; drawings shrink until their widest line fits;
+// code blocks shrink up to ~20%, then wrap.
+function fitWide(part, N) {
+  const tables = [...part.el.querySelectorAll('table')], pres = [...part.el.querySelectorAll('pre')];
+  if (!tables.length && !pres.length) return;
+  const REF = 20, all = [...tables, ...pres];
+  const colW = (geometry().W - (N - 1) * GAP) * 96 / N;
+  tables.forEach(t => t.classList.remove('squeeze'));
+  all.forEach(el => { el.style.fontSize = ''; el.style.width = 'max-content'; });
+  setSize(part.el, REF);
+  const maxW = all.map(el => el.offsetWidth);
+  all.forEach(el => { el.style.width = ''; });
+  const minW = all.map(el => el.offsetWidth);
+  const avail = all.map(el => el.parentElement === part.el ? colW : Math.min(colW, el.parentElement.clientWidth));
+  all.forEach((el, i) => {
+    const rMax = avail[i] / maxW[i];
+    if (rMax >= 0.99) return;
+    if (el.tagName === 'PRE') {
+      const cap = (REF * 0.9 * rMax * 0.97).toFixed(2) + 'pt';   // code text is 0.9em
+      el.style.fontSize = el.classList.contains('diagram') ? `min(0.9em, ${cap})` : `clamp(0.7em, ${cap}, 0.9em)`;
+      return;
+    }
+    let fs = `clamp(0.8em, ${(REF * rMax * 0.97).toFixed(2)}pt, 1em)`;
+    const rMin = avail[i] / minW[i];
+    if (rMin < 0.99) {
+      const fit = REF * rMin * 0.97;
+      if (fit < 4.5) el.classList.add('squeeze'); else fs = `min(${fit.toFixed(2)}pt, ${fs})`;
+    }
+    el.style.fontSize = fs;
+  });
+}
+
+function biggestThatFits(part, N) {
+  fitWide(part, N);
+  const fits = pt => { setSize(part.el, pt); return measure(part, N).fits; };
+  if (!fits(MIN_PT)) return null;
+  if (fits(MAX_PT)) return MAX_PT;
+  let lo = MIN_PT, hi = MAX_PT;
+  while (hi - lo > 0.02) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+  return lo;
+}
+
+function chooseLayout() {
+  const pick = els.cols.value;
+  if (!els.auto.checked) {
+    const s = num(els.size, 7, MIN_PT, 20);
+    return { N: pick === 'auto' ? lastN : +pick, sizes: parts.map(() => s) };
+  }
+  const options = pick === 'auto' ? [3, 4, 5] : [+pick];
+  let best = null;
+  for (const N of options) {
+    applyLayout(N);
+    const sizes = parts.map(p => biggestThatFits(p, N));
+    if (sizes.includes(null)) continue;
+    const score = Math.min(...sizes);
+    if (!best || score > best.score + 0.05) best = { N, sizes, score };
+  }
+  if (!best) return { N: options[options.length - 1], sizes: parts.map(() => MIN_PT) };
+  return { N: best.N, sizes: best.sizes.map(s => Math.max(MIN_PT, Math.floor(s * 0.995 * 20) / 20)) };  // tiny safety margin
+}
+
+/* ---------- Markdown, math, symbols, colors ---------- */
+// code (left alone), $$display$$ and $inline$ math, ==highlight==
+const SPANS = /(`{3}[\s\S]*?`{3}|`[^`\n]+`|\\\$)|\$\$([\s\S]+?)\$\$|\$(?=[^\s$])([^$\n]*?[^\s\\$])\$(?!\d)|==(?=[^\s=])([^=\n]*?[^\s=])==/g;
+
+// Tab-separated lines (what you get when pasting from Excel, Google Docs or Word) become Markdown tables.
+// o (where each line came from) is kept in step; returns [text, o].
+function tsvToTables(md, o) {
+  const lines = md.split('\n'), out = [], no = [];
+  let fence = false;
+  const isRow = l => !fence && l.trimStart().includes('\t');
+  for (let i = 0; i < lines.length; ) {
+    if (FENCE.test(lines[i])) { fence = !fence; no.push(o && o[i]); out.push(lines[i++]); continue; }
+    if (isRow(lines[i]) && isRow(lines[i + 1] || '')) {
+      let j = i;
+      while (j < lines.length && isRow(lines[j])) j++;
+      const rows = lines.slice(i, j).map(l => {
+        const r = l.split('\t').map(c => c.trim().replace(/\|/g, '\\|'));
+        while (r.length > 1 && !r[r.length - 1]) r.pop();
+        return r;
+      });
+      const n = Math.max(...rows.map(r => r.length));
+      const fmt = r => '| ' + Array.from({ length: n }, (_, k) => r[k] || ' ').join(' | ') + ' |';
+      out.push('', fmt(rows[0]), '|' + ' --- |'.repeat(n), ...rows.slice(1).map(fmt), '');
+      if (o) no.push(null, o[i], null, ...o.slice(i + 1, j), null);
+      i = j;
+    } else { no.push(o && o[i]); out.push(lines[i++]); }
+  }
+  return [out.join('\n'), o ? no : null];
+}
+
+// text.replace(re, fn), also keeping o (where each line came from) in step with the new lines; returns [text, o].
+function trackReplace(text, o, re, fn) {
+  const hits = [];
+  const out = text.replace(re, (...args) => {
+    const r = fn(...args);
+    if (r !== args[0]) hits.push([args[args.length - 2], args[0].length, r]);   // offset, length, replacement
+    return r;
+  });
+  if (!o) return [out, null];
+  const no = [o[0]];
+  let line = 0, pos = 0;
+  const copy = end => { for (let i = text.indexOf('\n', pos); i >= 0 && i < end; i = text.indexOf('\n', i + 1)) no.push(o[++line]); };
+  for (const [at, len, r] of hits) {
+    copy(at);
+    for (let i = text.indexOf('\n', at); i >= 0 && i < at + len; i = text.indexOf('\n', i + 1)) no[no.length - 1] = merge(no[no.length - 1], o[++line]);
+    for (let i = r.indexOf('\n'); i >= 0; i = r.indexOf('\n', i + 1)) no.push(o[line]);
+    pos = at + len;
+  }
+  copy(text.length);
+  return [out, no];
+}
+
+// The same HTML marked.parse makes, except each block also carries data-l: the line(s) of your notes
+// each of its lines came from ("4,5-7,8"). That is what lets a tap on the sheet find its spot in the notes.
+let Tagger = null;
+function taggedHTML(md, o, opts) {
+  try {
+    if (!Tagger) Tagger = makeTagger();
+    const full = { ...(typeof marked.getDefaults === 'function' ? marked.getDefaults() : marked.defaults), ...opts };
+    const tokens = marked.lexer(md, full);
+    place(tokens, md, 0);
+    return marked.parser(tokens, { ...full, renderer: new Tagger(o) });
+  } catch (e) { return null; }   // fall back to the plain version, the sheet just can't be tapped
+}
+
+function makeTagger() {
+  const tag = (html, l) => l ? html.replace(/^<([a-z][a-z0-9]*)/i, `<$1 data-l="${l}"`) : html;
+  return class extends marked.Renderer {
+    constructor(o) { super(); this.o = o; }
+    lines(from, n) {
+      if (from === undefined) return '';
+      const out = [];
+      for (let k = from; k < from + n; k++) { const x = this.o[k]; out.push(!x ? '' : x[0] === x[1] ? String(x[0]) : x[0] + '-' + x[1]); }
+      return out.some(s => s !== '') ? out.join(',') : '';
+    }
+    of(t) { return this.lines(t._l, (t.raw || '').replace(/\n+$/, '').split('\n').length); }
+    paragraph(t) { return tag(super.paragraph(t), this.of(t)); }
+    html(t) { return asText(t.text); }   // placeholders like <dir> stay text (see asText)
+    heading(t) { return tag(super.heading(t), this.of(t)); }
+    blockquote(t) { return tag(super.blockquote(t), this.of(t)); }
+    hr(t) { return tag(super.hr(t), this.of(t)); }
+    listitem(t) { return tag(super.listitem(t), this.of(t)); }
+    code(t) {   // one entry per line of the code itself (not the ``` lines)
+      const fenced = /^ {0,3}(`{3}|~{3})/.test(t.raw || '');
+      return tag(super.code(t), t._l === undefined ? '' : this.lines(t._l + (fenced ? 1 : 0), (t.text || '').split('\n').length));
+    }
+    table(t) {   // each row: the header row, then the body rows from two lines further down
+      let k = 0;
+      return super.table(t).replace(/<tr>/g, () => {
+        const l = t._l === undefined ? '' : this.lines(t._l + (k ? k + 1 : 0), 1);
+        k++;
+        return l ? `<tr data-l="${l}">` : '<tr>';
+      });
+    }
+  };
+}
+
+// Note the Markdown line each block starts on, by finding its raw text, in order, inside its parent.
+function place(tokens, src, line) {
+  const breaks = (s, a, b) => { let n = 0; for (let i = s.indexOf('\n', a); i >= 0 && i < b; i = s.indexOf('\n', i + 1)) n++; return n; };
+  let at = 0;
+  for (const t of tokens) {
+    const raw = t.raw || '';
+    let i = src.indexOf(raw, at);
+    if (i < 0) i = at;
+    line += breaks(src, at, i);
+    t._l = line;
+    if (t.type === 'list' && t.items) place(t.items, raw, line);
+    else if ((t.type === 'list_item' || t.type === 'blockquote') && t.tokens && typeof t.text === 'string') place(t.tokens, t.text, line);
+    line += breaks(raw, 0, raw.length);
+    at = i + raw.length;
+  }
+}
+
+// <dir>, <file>, <name>... in your notes are placeholders, not HTML. Only these tags stay real HTML;
+// any other tag shows as typed. (<dir> is an old HTML list tag, so it indented everything after it.)
+const HTML_OK = /^(a|b|i|u|s|em|strong|mark|small|sub|sup|br|hr|span|div|p|code|kbd|pre|img|del|ins|font|table|thead|tbody|tr|th|td|ul|ol|li|blockquote|details|summary|h[1-6])$/i;
+const asText = s => s.replace(/<(\/?)([A-Za-z][\w-]*)/g, (m, end, name) => HTML_OK.test(name) ? m : '&lt;' + end + name);
+if (window.marked) marked.use({ renderer: { html(t) { return asText(t.text); } } });
+
+function toHTML(md, o) {
+  [md, o] = trackReplace(md, o, /^[ \t]*\\columnbreak[ \t]*$/gm, () => '\n<div class="colbreak"></div>\n');
+  const useMath = els.math.checked && window.katex;
+  const math = [];
+  // one pass that leaves code alone, pulls math out (so Markdown doesn't mangle _ and *) and turns ==text== into a highlight
+  [md, o] = trackReplace(md, o, SPANS,
+    (m, code, disp, inl, hl) => {
+      if (code !== undefined) return code;
+      if (hl !== undefined) return '<mark>' + hl + '</mark>';
+      if (!useMath) return m;
+      math.push(disp !== undefined ? [disp, true] : [inl, false]);
+      return '\u27E6' + (math.length - 1) + '\u27E7';
+    });
+  [md, o] = tsvToTables(md, o);
+  const opts = { gfm: true, breaks: els.breaks.checked };
+  let html = o && taggedHTML(md, o, opts);
+  if (typeof html !== 'string') html = marked.parse(md, opts);
+  if (math.length) {
+    html = html.replace(/\u27E6(\d+)\u27E7/g, (m, i) => {
+      const [tex, display] = math[+i];
+      try { return katex.renderToString(tex, { displayMode: display, throwOnError: false }); }
+      catch (e) { return m; }
+    });
+  }
+  return html;
+}
+
+// Real arrows and symbols in normal text, and no line breaks inside arrows or ranges like 27-28.
+const PRETTY = { '<-->': '\u2194', '<->': '\u2194', '<=>': '\u21D4', '-->': '\u2192', '->': '\u2192',
+                 '<--': '\u2190', '<-': '\u2190', '==>': '\u21D2', '=>': '\u21D2', '!=': '\u2260', '<=': '\u2264', '>=': '\u2265' };
+const PRETTY_RE = /<-->|<->|<=>|-->|->|<--|<-|==>|=>|!=|<=|>=/g;
+function polish(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) {
+    if (!walker.currentNode.parentElement.closest('pre, code, .katex')) nodes.push(walker.currentNode);
+  }
+  nodes.forEach(n => {
+    let t = n.nodeValue;
+    t = els.pretty.checked ? t.replace(PRETTY_RE, m => PRETTY[m])
+                           : t.replace(/-(?=>)/g, '-\u2060').replace(/<(?=-)/g, '<\u2060');
+    t = t.replace(/([0-9])-(?=[A-Za-z0-9])|([A-Za-z])-(?=[0-9])/g, (m, a, b) => (a || b) + '-\u2060');
+    if (t !== n.nodeValue) n.nodeValue = t;
+  });
+}
+
+// "Term: definition" at the start of a line -> the term gets colored like the headings.
+// In "= formula [law: note]" only the law name gets the color.
+const CAND_RE = /^(\s*)([^:\n]{1,80}?)(\s*:)(?=\s|$)/;
+function findTerm(c) {
+  const open = c.lastIndexOf('[');
+  if (open >= 0 && c.indexOf(']', open) < 0) {             // colon sits inside an open [ ... -> just the label
+    const label = c.slice(open + 1);
+    return /^\p{L}[\p{L}\p{N}' -]{0,24}$/u.test(label) ? [open + 1, label] : null;
+  }
+  if (c.length > 39 || /[.;!?]/.test(c) || !/^[\p{L}\p{N}(]/u.test(c)) return null;
+  const count = re => (c.match(re) || []).length;
+  return count(/\(/g) === count(/\)/g) && count(/\[/g) === count(/\]/g) ? [0, c] : null;
+}
+function markTerms(root) {
+  root.querySelectorAll('p, li').forEach(block => {
+    [...block.childNodes].forEach(node => {
+      if (node.nodeType !== 3) return;
+      const prev = node.previousSibling;
+      if (prev && prev.nodeName !== 'BR') return;
+      const m = CAND_RE.exec(node.nodeValue);
+      const hit = m && findTerm(m[2]);
+      if (!hit) return;
+      const [at, label] = hit, lead = m[1] + m[2].slice(0, at);
+      const span = document.createElement('span');
+      span.className = 'term';
+      span.textContent = label;
+      if (lead) block.insertBefore(document.createTextNode(lead), node);
+      block.insertBefore(span, node);
+      node.nodeValue = m[3] + node.nodeValue.slice(m[0].length);
+    });
+  });
+}
+
+// Rainbow: each heading and term gets the next pen color. Only blue + red: headings blue, terms and bold red.
+function colorize(root, i) {
+  root.querySelectorAll('h1, h2, h3, h4, h5, h6, strong, .term').forEach(el => {
+    if (el.tagName === 'STRONG' && el.closest('h1, h2, h3, h4, h5, h6')) return;
+    const heading = /^H\d$/.test(el.tagName);
+    el.style.color = els.duo.checked ? (heading ? BLUE : RED) : PALETTE[i++ % PALETTE.length];
+  });
+  return i;
+}
+
+function setStatus(msg, cls) { els.status.textContent = msg; els.status.className = cls || ''; }
+
+/* ---------- tap the sheet -> the cursor goes to that spot in your notes (and back) ---------- */
+// Each block on the sheet knows which lines of your notes it came from (data-l). Inside a block the spot is found
+// by the word you tapped: the 3rd "cost" in the block is the 3rd "cost" in those lines. Code and drawings go by
+// line and column instead. Formulas go to the start of their $...$.
+const WORD = /[\p{L}\p{M}\p{N}]+/gu;
+const MATHS = '.katex, .katex-error';
+const SEPARATE = /^(BR|P|LI|TD|TH|TR|DIV|H[1-6]|PRE|BLOCKQUOTE|UL|OL|TABLE|THEAD|TBODY|HR|IMG)$/;
+
+const lineStarts = s => { const st = [0]; for (let i = s.indexOf('\n'); i >= 0; i = s.indexOf('\n', i + 1)) st.push(i + 1); return st; };
+const lineEnd = k => k + 1 < rendered.starts.length ? rendered.starts[k + 1] - 1 : rendered.src.length;
+function lineOf(pos) {
+  const st = rendered.starts;
+  let lo = 0, hi = st.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (st[mid] <= pos) lo = mid; else hi = mid - 1; }
+  return lo;
+}
+const parseL = s => (s || '').split(',').map(x => { if (!x) return null; const [a, b = a] = x.split('-').map(Number); return [a, b]; });
+const union = L => L.reduce(merge, null);
+
+// Which line(s) of your notes each line of the front and back text came from, split at \pagebreak like the text.
+function partOrigins(md, map, texts) {
+  const groups = [[]];
+  md.split('\n').forEach((l, k) => {
+    if (/^[ \t]*\\pagebreak[ \t]*$/.test(l)) { groups[groups.length - 1].push(null); groups.push([null]); }
+    else groups[groups.length - 1].push(map ? map[k] : [k, k]);
+  });
+  const lists = texts.length > 1 ? [groups[0], [].concat(...groups.slice(1))] : [[].concat(...groups)];
+  return lists.map((o, i) => o.length === texts[i].split('\n').length ? o : null);   // only if they line up
+}
+
+// Your lines as they read on the sheet: formulas blanked out, and the numbers of numbered lists (the sheet draws
+// those itself), so counting words gives the same answer on both sides. Positions stay put.
+function notesText(a, b) {
+  let s = rendered.src.slice(rendered.starts[a], lineEnd(b));
+  if (rendered.math) s = s.replace(SPANS, (m, code, disp, inl) => disp === undefined && inl === undefined ? m : ' '.repeat(m.length));
+  return s.replace(/^([ \t]*(?:>[ \t]*)*)(\d{1,9})(?=[.)][ \t])/gm, (m, lead, n) => lead + ' '.repeat(n.length));
+}
+// The formulas in s: where each $...$ starts and ends (from, to) and where its inside starts (at, len).
+const mathStarts = s => rendered.math ? [...s.matchAll(SPANS)].filter(m => m[2] !== undefined || m[3] !== undefined)
+  .map(m => ({ at: m.index + (m[2] !== undefined ? 2 : 1), len: (m[2] !== undefined ? m[2] : m[3]).length,
+               from: m.index, to: m.index + m[0].length })) : [];
+
+// The text of a block as it reads on the sheet (each formula counts as one symbol), where a point falls in it,
+// and segs to turn text positions back into places on the page.
+function flatten(root, point) {
+  let text = '', at = -1, range = null;
+  const segs = [];
+  if (point) { try { range = document.createRange(); range.setStart(point.node, point.offset); } catch (e) { range = null; } }
+  const reached = n => { try { return range.comparePoint(n, 0) >= 0; } catch (e) { return false; } };
+  (function walk(n) {
+    for (let c = n.firstChild; c; c = c.nextSibling) {
+      if (c.nodeType === 3) {
+        if (range && at < 0) {
+          if (c === point.node) at = text.length + Math.min(point.offset, c.length);
+          else if (reached(c)) at = text.length;
+        }
+        segs.push([c, text.length]);
+        text += c.nodeValue;
+      } else if (c.nodeType === 1) {
+        if (range && at < 0 && reached(c)) at = text.length;
+        if (SEPARATE.test(c.tagName)) text += c.tagName === 'BR' ? '\n' : ' ';
+        if (c.matches(MATHS)) { segs.push([c, text.length]); text += '\uFFFC'; }
+        else walk(c);
+      }
+    }
+  })(root);
+  if (range && at < 0) at = text.length;
+  return { text, at, segs };
+}
+
+function wordAt(s, i) {
+  for (const m of s.matchAll(WORD)) {
+    if (m.index > i) break;
+    if (i <= m.index + m[0].length) return m;
+  }
+  return null;
+}
+function countBefore(s, w, end) {
+  let n = 0;
+  for (const m of s.matchAll(WORD)) { if (m.index >= end) break; if (m[0] === w) n++; }
+  return n;
+}
+// Where the k-th w is in s (the last one if there are fewer), -1 if none.
+function nth(s, w, k, anyCase) {
+  const eq = anyCase ? x => x.toLowerCase() === w.toLowerCase() : x => x === w;
+  let found = -1, n = 0;
+  for (const m of s.matchAll(WORD)) if (eq(m[0])) { found = m.index; if (n++ === k) break; }
+  return found;
+}
+// How many characters of a notes line come before the part shown on the sheet (indent cut off a drawing or code).
+const shiftOf = (raw, shown) => {
+  for (const r of [raw, raw.trimEnd()]) if (r.endsWith(shown)) return r.length - shown.length;
+  return Math.max(0, raw.indexOf(shown));
+};
+// The run of non-space characters around column col (just that character if it's a space).
+function runAt(line, col) {
+  let a = col, z = col + 1;
+  if (/\S/.test(line[col] || '')) {
+    while (a > 0 && /\S/.test(line[a - 1])) a--;
+    while (z < line.length && /\S/.test(line[z])) z++;
+  }
+  return [a, Math.min(z, line.length)];
+}
+function nearest(L, i) {
+  for (let d = 0; d < L.length; d++) { if (L[i - d]) return L[i - d]; if (L[i + d]) return L[i + d]; }
+  return null;
+}
+
+// Where in your notes a point on the sheet came from: { pos: cursor, from/len: the bit to flash }, or null.
+function sourceOf(el, point) {
+  const L = parseL(el.getAttribute('data-l')), whole = union(L);
+  if (!whole) return null;
+  const src = rendered.src, base = rendered.starts[whole[0]];
+  if (el.tagName === 'PRE') {   // code and drawings: same line, same column
+    const { text, at } = flatten(el, point);
+    const upto = text.slice(0, at), li = upto.split('\n').length - 1, col = at - upto.lastIndexOf('\n') - 1;
+    const x = L[Math.min(li, L.length - 1)] || nearest(L, Math.min(li, L.length - 1));
+    const start = rendered.starts[x[0]], raw = src.slice(start, lineEnd(x[0])), shown = text.split('\n')[li] || '';
+    const shift = shiftOf(raw, shown), [a, z] = runAt(shown, col);
+    const fit = i => start + Math.min(shift + i, raw.length);
+    return { pos: fit(col), from: fit(a), len: fit(z) - fit(a) };
+  }
+  const S = notesText(whole[0], whole[1]);
+  const f = (point.node.nodeType === 3 ? point.node.parentElement : point.node).closest(MATHS);
+  if (f && el.contains(f)) {   // a formula: the cursor goes to the start of its source
+    const k = [...el.querySelectorAll(MATHS)].indexOf(f), spans = mathStarts(src.slice(base, lineEnd(whole[1])));
+    if (spans.length) { const m = spans[Math.min(k, spans.length - 1)]; return { pos: base + m.at, from: base + m.at, len: m.len }; }
+  }
+  const { text, at } = flatten(el, point);
+  const w = wordAt(text, at);
+  if (w) {
+    const k = countBefore(text, w[0], w.index);
+    let i = nth(S, w[0], k);
+    if (i < 0) i = nth(S, w[0], k, true);
+    if (i >= 0) return { pos: base + i + Math.min(at - w.index, w[0].length), from: base + i, len: w[0].length };
+  }
+  // A symbol or a gap (or a word written differently in the notes): go by the nearest word before it, then after it.
+  const ws = [...text.matchAll(WORD)];
+  for (let j = ws.length - 1; j >= 0; j--) {
+    const v = ws[j], e = v.index + v[0].length;
+    if (e > at) continue;
+    const i = nth(S, v[0], countBefore(text, v[0], v.index));
+    if (i < 0) continue;
+    const after = i + v[0].length, next = S.slice(after).search(/[\p{L}\p{M}\p{N}]/u);
+    const pos = base + after + Math.min(at - e, next < 0 ? S.length - after : next);
+    return { pos, from: pos, len: 0 };
+  }
+  for (const v of ws) {
+    if (v.index < at) continue;
+    const i = nth(S, v[0], countBefore(text, v[0], v.index));
+    if (i >= 0) return { pos: base + i, from: base + i, len: 0 };
+  }
+  const pos = base + Math.max(0, S.search(/\S/));
+  return { pos, from: pos, len: 0 };
+}
+
+const blockAt = (node, sheet) => {
+  for (let n = node.nodeType === 1 ? node : node.parentElement; n && n !== sheet; n = n.parentElement)
+    if (n.hasAttribute('data-l')) return n;
+  return null;
+};
+// Something that isn't traced (raw HTML you typed): look for the word in the lines between the blocks around it,
+// else go to the end of the block before it.
+function untraced(sheet, point) {
+  let prev = null, next = null;
+  for (const b of sheet.querySelectorAll('[data-l]')) {
+    const rel = b.compareDocumentPosition(point.node);
+    if (rel & Node.DOCUMENT_POSITION_FOLLOWING) prev = b;
+    else if (rel & Node.DOCUMENT_POSITION_PRECEDING) { next = b; break; }
+  }
+  const p = prev && union(parseL(prev.getAttribute('data-l'))), q = next && union(parseL(next.getAttribute('data-l')));
+  const a = p ? p[1] + 1 : 0, z = q ? q[0] - 1 : rendered.starts.length - 1;
+  if (point.node.nodeType === 3 && a <= z) {
+    const text = point.node.nodeValue, w = wordAt(text, point.offset);
+    if (w) {
+      const base = rendered.starts[a], i = nth(notesText(a, z), w[0], countBefore(text, w[0], w.index));
+      if (i >= 0) return { pos: base + i + Math.min(point.offset - w.index, w[0].length), from: base + i, len: w[0].length };
+    }
+  }
+  if (!p) return null;
+  const pos = lineEnd(p[1]);
+  return { pos, from: pos, len: 0 };
+}
+
+function caretAt(x, y) {
+  if (document.caretPositionFromPoint) {
+    const p = document.caretPositionFromPoint(x, y);
+    if (p && p.offsetNode) return { node: p.offsetNode, offset: p.offset };
+  }
+  if (document.caretRangeFromPoint) {
+    const r = document.caretRangeFromPoint(x, y);
+    if (r) return { node: r.startContainer, offset: r.startOffset };
+  }
+  return null;
+}
+// A tap on empty space (below the end of a column, an empty column) finds text far away: that's not a tap on text.
+function nearTap(point, e, sheet) {
+  let b = null;
+  try {
+    const r = document.createRange();
+    r.setStart(point.node, point.offset);
+    b = [...r.getClientRects()].find(x => x.height > 0) || null;
+  } catch (err) {}
+  if (!b) {
+    const el = point.node.nodeType === 1 ? point.node : point.node.parentElement;
+    if (el === sheet) return false;
+    b = el.getBoundingClientRect();
+  }
+  const cs = getComputedStyle(sheet), n = parseInt(cs.columnCount, 10) || 1;
+  const colW = (sheet.getBoundingClientRect().width - (n - 1) * (parseFloat(cs.columnGap) || 0) * shown.z) / n;
+  const h = Math.max(b.height, 6);
+  return e.clientY >= b.top - h && e.clientY <= b.bottom + h && Math.abs(e.clientX - (b.left + b.right) / 2) <= colW;
+}
+
+// Where position pos in text a ends up in text b, when only one part was edited in between.
+function rebase(pos, a, b) {
+  if (a === b) return Math.min(pos, b.length);
+  const n = Math.min(a.length, b.length);
+  let s = 0;
+  while (s < n && a[s] === b[s]) s++;
+  if (pos <= s) return pos;
+  let e = 0;
+  while (e < n - s && a[a.length - 1 - e] === b[b.length - 1 - e]) e++;
+  return pos >= a.length - e ? pos + b.length - a.length : s;
+}
+
+const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const touchScreen = () => matchMedia('(hover: none) and (pointer: coarse)').matches;
+// A yellow box that fades out; box is in parent's coordinates.
+function flash(parent, box, scrollTo) {
+  const d = document.createElement('div'), pad = 2;
+  d.className = 'flash';
+  Object.assign(d.style, { left: box.left - pad + 'px', top: box.top - pad + 'px',
+                           width: Math.max(box.width, 2) + 2 * pad + 'px', height: Math.max(box.height, 6) + 2 * pad + 'px' });
+  parent.appendChild(d);
+  if (scrollTo) d.scrollIntoView({ block: 'center', inline: 'center', behavior: calm() ? 'auto' : 'smooth' });
+  setTimeout(() => d.remove(), 1900);
+}
+
+// Scroll the text box so the spot is about a third of the way down (browsers don't all do this when the cursor
+// is moved by code). Returns where the spot is inside the box's text.
+function revealCaret(ta, from, len) {
+  const cs = getComputedStyle(ta), m = document.createElement('div'), mark = document.createElement('span');
+  ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'fontStretch', 'lineHeight', 'letterSpacing', 'wordSpacing',
+   'tabSize', 'textTransform', 'wordBreak', 'paddingTop', 'paddingLeft', 'paddingRight'].forEach(p => { m.style[p] = cs[p]; });
+  Object.assign(m.style, { position: 'absolute', top: '0', left: '-9999px', visibility: 'hidden', boxSizing: 'content-box',
+                           whiteSpace: 'pre-wrap', overflowWrap: 'break-word',
+                           width: ta.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) + 'px' });
+  m.textContent = ta.value.slice(0, from);
+  mark.textContent = ta.value.slice(from, from + len) || '\u200B';
+  m.appendChild(mark);
+  document.body.appendChild(m);
+  const spot = { left: mark.offsetLeft, top: mark.offsetTop, width: len ? mark.offsetWidth : 2, height: mark.offsetHeight };
+  m.remove();
+  spot.scroll = Math.max(0, spot.top - ta.clientHeight / 3);
+  ta.scrollTop = spot.scroll;
+  return spot;
+}
+
+// Put the cursor at hit.pos in the text box (positions are in the text the sheet was built from).
+function jumpTo(hit) {
+  const ta = els.src, now = ta.value;
+  const pos = rebase(hit.pos, rendered.src, now), from = rebase(hit.from, rendered.src, now);
+  const len = Math.max(0, Math.min(hit.len, now.length - from));
+  ta.focus({ preventScroll: true });
+  ta.setSelectionRange(pos, pos);
+  const spot = revealCaret(ta, from, len);
+  ta.scrollIntoView({ block: 'nearest' });
+  requestAnimationFrame(() => {   // some browsers scroll the box their own way after the cursor moves
+    if (Math.abs(ta.scrollTop - spot.scroll) > 1) ta.scrollTop = spot.scroll;
+    flash(ta.parentElement, { left: ta.offsetLeft + ta.clientLeft + spot.left - ta.scrollLeft,
+                              top: ta.offsetTop + ta.clientTop + spot.top - ta.scrollTop,
+                              width: spot.width, height: spot.height });
+  });
+}
+
+function onSheetTap(e) {
+  if (!els.tapjump.checked || e.button || !rendered) return;
+  const sel = getSelection();
+  if (e.detail < 2 && sel && !sel.isCollapsed && String(sel).trim()) return;   // you were selecting text, not tapping
+  if (e.target.closest('.titlebar')) {
+    const n = els.title.value.length;
+    els.title.focus();
+    els.title.setSelectionRange(n, n);
+    return;
+  }
+  const sheet = e.target.closest('.sheet');
+  if (!sheet) return;
+  if (e.target.closest('a')) e.preventDefault();   // a link on the sheet: jump to it in the notes, don't leave the page
+  let point = caretAt(e.clientX, e.clientY);
+  if (!point || !sheet.contains(point.node)) point = { node: e.target, offset: 0 };
+  if (!nearTap(point, e, sheet)) return;
+  const block = blockAt(point.node, sheet);
+  let hit = null;
+  try { hit = block ? sourceOf(block, point) : untraced(sheet, point); } catch (err) { hit = null; }
+  if (hit) jumpTo(hit);
+}
+
+// The other way: from the cursor in your notes to the spot on the sheet.
+// A DOM range over text positions [a, z) of a flattened block.
+function rangeOf(segs, a, z) {
+  const find = i => { let s = null; for (const x of segs) { if (x[1] <= i) s = x; else break; } return s; };
+  const p = find(a), q = find(Math.max(a, z - 1));
+  if (!p || !q) return null;
+  const r = document.createRange();
+  if (p[0].nodeType === 3) r.setStart(p[0], Math.min(a - p[1], p[0].length)); else r.setStartBefore(p[0]);
+  if (q[0].nodeType === 3) r.setEnd(q[0], Math.min(Math.max(z - q[1], 0), q[0].length)); else r.setEndAfter(q[0]);
+  return r;
+}
+// The word (or drawing piece) at position pos inside block b, as a range, or null.
+function spotIn(b, pos, line) {
+  const { el, L, w } = b, src = rendered.src;
+  if (el.tagName === 'PRE') {
+    const li = L.findIndex(x => x && x[0] <= line && line <= x[1]);
+    if (li < 0) return null;
+    const { text, segs } = flatten(el, null), rows = text.split('\n'), shown = rows[li] || '';
+    if (!shown) return null;
+    const start = rendered.starts[line], raw = src.slice(start, lineEnd(line));
+    const col = clamp(pos - start - shiftOf(raw, shown), 0, shown.length - 1), [a, z] = runAt(shown, col);
+    const off = rows.slice(0, li).reduce((n, r) => n + r.length + 1, 0);
+    return rangeOf(segs, off + a, off + z);
+  }
+  const base = rendered.starts[w[0]], S = notesText(w[0], w[1]);
+  const k = mathStarts(src.slice(base, lineEnd(w[1]))).findIndex(m => m.from <= pos - base && pos - base <= m.to);
+  const f = k >= 0 && el.querySelectorAll(MATHS)[k];
+  if (f) { const r = document.createRange(); r.selectNode(f); return r; }   // the cursor is in a formula
+  const v = wordAt(S, pos - base);
+  if (!v) return null;
+  const { text, segs } = flatten(el, null);
+  let i = nth(text, v[0], countBefore(S, v[0], v.index));
+  if (i < 0) i = nth(text, v[0], countBefore(S, v[0], v.index), true);
+  return i < 0 ? null : rangeOf(segs, i, i + v[0].length);
+}
+// The first piece of it that shows on a page (each page only shows its own part of the text).
+function visibleRect(rects, el) {
+  const vp = el.closest('.viewport');
+  if (!vp) return null;
+  const v = vp.getBoundingClientRect();
+  for (const r of rects) {
+    if (!r.width && !r.height) continue;
+    if (r.right > v.left + 1 && r.left < v.right - 1 && r.bottom > v.top + 1 && r.top < v.bottom - 1) return r;
+  }
+  return null;
+}
+let sayTimer = 0;
+function say(msg) {
+  els.locInfo.textContent = msg;
+  clearTimeout(sayTimer);
+  if (msg) sayTimer = setTimeout(() => { els.locInfo.textContent = ''; }, 5000);
+}
+function showOnSheet() {
+  say('');
+  if (!rendered) return;
+  const ta = els.src, pos = rebase(ta.selectionStart, ta.value, rendered.src), line = lineOf(pos);
+  const blocks = [...els.out.querySelectorAll('.sheet [data-l]')]
+    .map(el => { const L = parseL(el.getAttribute('data-l')); return { el, L, w: union(L) }; }).filter(b => b.w);
+  if (!blocks.length) return say('Nothing on the sheet yet.');
+  let pick = blocks.filter(b => b.L.some(x => x && x[0] <= line && line <= x[1]));
+  const exact = pick.length > 0;
+  if (!exact) {   // a blank line or one that isn't shown: the closest block after it, else before it
+    const after = blocks.filter(b => b.w[0] > line);
+    const near = after.length ? Math.min(...after.map(b => b.w[0])) : Math.max(...blocks.map(b => b.w[1]));
+    pick = blocks.filter(b => after.length ? b.w[0] === near : b.w[1] === near);
+  }
+  // innermost first (a list item before the item it sits in); the same block is on both pages when the text
+  // flows across them, so take the copy you can actually see
+  pick.sort((p, q) => (p.w[1] - p.w[0]) - (q.w[1] - q.w[0]) || (p.el.contains(q.el) ? 1 : q.el.contains(p.el) ? -1 : 0));
+  for (const b of pick) {
+    let r = null;
+    try { r = exact ? spotIn(b, pos, line) : null; } catch (err) { r = null; }
+    const box = (r && visibleRect(r.getClientRects(), b.el)) || visibleRect(b.el.getClientRects(), b.el);
+    if (!box) continue;
+    // the flash goes in the pages' own scroll area (in its coordinates), so scrolling to it works there too
+    const host = els.scroller, hr = host.getBoundingClientRect();
+    const at = { left: box.left - hr.left - host.clientLeft + host.scrollLeft,
+                 top: box.top - hr.top - host.clientTop + host.scrollTop, width: box.width, height: box.height };
+    if (touchScreen() && document.activeElement === ta) {   // put the keyboard away first so the sheet shows
+      ta.blur();
+      setTimeout(() => flash(host, at, true), 300);
+    } else flash(host, at, true);
+    return;
+  }
+  say("That part is cut off: it's past the end of the sheet.");
+}
+
+/* ---------- zoom: scales only the sheet preview, never the menu or the printout ---------- */
+// The pages are scaled with a transform, so their layout (everything in inches) stays exactly the same and the
+// fitting doesn't change; #zoomer is made as big as the scaled pages so the scroll bars are right.
+const ZMIN = 0.25, ZMAX = 5;
+const ZSTEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5];
+const PAGE_W_PX = 8.5 * 96, PAGE_H_PX = PAGE_H * 96;
+const BAR_TOP = 8;   // where the zoom bar sticks on narrow screens (its CSS top)
+const WIDE = matchMedia('screen and (min-width: 1200px)');   // same test as the CSS: menu and pages side by side
+const shown = { z: 1, mode: 1 };   // mode: a zoom (number), or 'width' / 'page', which follow the window size
+
+function sizeBox() {
+  const r = els.out.getBoundingClientRect();
+  els.zoomer.style.width = Math.ceil(r.width) + 'px';
+  els.zoomer.style.height = Math.ceil(r.height) + 'px';
+}
+function setScale(z) {
+  shown.z = z;
+  els.out.style.transform = z === 1 ? '' : 'scale(' + z + ')';
+  sizeBox();
+  els.zPct.textContent = Math.round(z * 100) + '%';
+  els.zWidth.setAttribute('aria-pressed', String(shown.mode === 'width'));
+  els.zPage.setAttribute('aria-pressed', String(shown.mode === 'page'));
+  els.zOut.disabled = z <= ZMIN;
+  els.zIn.disabled = z >= ZMAX;
+}
+// The part of the preview you can see right now: inside the window and below the zoom bar.
+function viewBox() {
+  const sc = els.scroller, r = sc.getBoundingClientRect(), de = document.documentElement;
+  const top = Math.max(r.top, els.zoombar.getBoundingClientRect().bottom, 0);
+  const left = Math.max(r.left, 0);
+  return { left, top, right: Math.max(left, Math.min(r.left + sc.clientWidth, de.clientWidth)),
+           bottom: Math.max(top, Math.min(r.top + sc.clientHeight, de.clientHeight)) };
+}
+function fitZoom(mode) {
+  const sc = els.scroller, cs = getComputedStyle(sc);
+  const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+  const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+  let z = (sc.clientWidth - padX) / PAGE_W_PX;
+  if (mode === 'page') {
+    const h = WIDE.matches ? sc.clientHeight - padY
+                           : document.documentElement.clientHeight - els.zoombar.offsetHeight - BAR_TOP - padY;
+    z = Math.min(z, h / PAGE_H_PX);
+  }
+  return z > 0 ? Math.floor(z * 1000) / 1000 : 1;   // rounded down, so a fitted page never spills over
+}
+// The pages' scroll area scrolls first; what it can't take, the window does (narrow screens scroll the window).
+function scrollBoth(dx, dy) {
+  const sc = els.scroller, l = sc.scrollLeft, t = sc.scrollTop;
+  sc.scrollLeft = l + dx;
+  sc.scrollTop = t + dy;
+  const rx = dx - (sc.scrollLeft - l), ry = dy - (sc.scrollTop - t);
+  if (Math.abs(rx) >= 1 || Math.abs(ry) >= 1) window.scrollBy(rx, ry);
+}
+// mode: a zoom, 'width' or 'page'. The spot of the sheet under `at` ({x, y} on screen; default: the middle of
+// what you can see) stays where it is; 'page' lines up the page you were looking at with the top instead.
+// at === false: just set it (on start-up).
+function applyZoom(mode, at) {
+  const z = clamp(Math.round((typeof mode === 'number' ? mode : fitZoom(mode)) * 1000) / 1000, ZMIN, ZMAX);
+  shown.mode = typeof mode === 'number' ? z : mode;
+  if (at === false) { setScale(z); return; }
+  const v = viewBox();
+  const x = at ? at.x : (v.left + v.right) / 2, y = at ? at.y : (v.top + v.bottom) / 2;
+  const before = els.out.getBoundingClientRect(), old = shown.z;
+  let page = null;
+  if (mode === 'page' && !at) {   // the page nearest the middle of the view
+    let best = Infinity;
+    for (const p of els.out.children) {
+      const r = p.getBoundingClientRect(), d = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
+      if (d < best) { best = d; page = p; }
+    }
+  }
+  setScale(z);
+  if (page) {
+    const r = page.getBoundingClientRect();
+    const top = WIDE.matches ? v.top + parseFloat(getComputedStyle(els.scroller).paddingTop)
+                             : BAR_TOP + els.zoombar.offsetHeight + 8;
+    scrollBoth((r.left + r.right - v.left - v.right) / 2, r.top - top);
+  } else {
+    const now = els.out.getBoundingClientRect();
+    scrollBoth(now.left + (x - before.left) / old * z - x, now.top + (y - before.top) / old * z - y);
+  }
+  clearTimeout(zoomSaveTimer);
+  zoomSaveTimer = setTimeout(save, 400);
+}
+let zoomSaveTimer = 0, settleTimer = 0;
+// Pinch and Ctrl+scroll come in many small steps: while they last, the screen just scales the picture it has
+// (smooth, a little soft); a moment after you stop, the text is drawn sharp again.
+function zoomGesture(z, at) {
+  els.out.style.willChange = 'transform';
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(() => { els.out.style.willChange = ''; }, 300);
+  applyZoom(z, at);
+}
+function stepZoom(dir) {
+  const z = shown.z;
+  const next = dir > 0 ? ZSTEPS.find(s => s > z + 0.005) : [...ZSTEPS].reverse().find(s => s < z - 0.005);
+  applyZoom(next === undefined ? (dir > 0 ? ZMAX : ZMIN) : next);
+}
+// 'Fit width' and 'Whole page' follow the window: refit when the room for the pages changes size.
+const roomKey = () => els.scroller.clientWidth + 'x' +
+  (WIDE.matches ? els.scroller.clientHeight : document.documentElement.clientHeight);
+let room = '';
+// The room the pages' scroll bar takes (0 where scroll bars float over the content, like on a Mac), for the menu
+// width in the CSS. Measured with the same settings the pages' scroll area has on wide screens.
+function measureScrollbar() {
+  const d = document.createElement('div');
+  d.style.cssText = 'position:absolute;top:-999px;width:100px;height:100px;overflow:auto;scrollbar-gutter:stable';
+  document.body.appendChild(d);
+  document.documentElement.style.setProperty('--sbw', d.offsetWidth - d.clientWidth + 'px');
+  d.remove();
+}
+function refit() {
+  const k = roomKey();
+  if (k === room) return;
+  room = k;
+  if (typeof shown.mode === 'string' && clamp(fitZoom(shown.mode), ZMIN, ZMAX) !== shown.z) applyZoom(shown.mode);
+}
+
+/* ---------- drag the sheet to move around ---------- */
+// Hold the left or middle mouse button and drag; the right one too where its menu opens when you let go (Windows).
+// A press only becomes a drag once the mouse moves a few pixels, so a click still puts the cursor in your notes.
+// Shift + drag selects text like before. Touch screens already scroll with a finger, so this is mouse only.
+const DRAG_MIN = 4;
+const BUTTON_BIT = [1, 4, 2];   // e.buttons bit for button 0 (left), 1 (middle), 2 (right)
+let drag = null;                 // { id, button, x, y, moved, rx, ry }
+let dragEnd = { at: 0, button: -1 };   // the drag that just ended: the click or menu that follows it is not a click
+let downType = '';
+
+function onScrollbar(e) {
+  const sc = els.scroller, r = sc.getBoundingClientRect();
+  return e.clientX >= r.left + sc.clientLeft + sc.clientWidth || e.clientY >= r.top + sc.clientTop + sc.clientHeight;
+}
+function dragStart(e) {
+  downType = e.pointerType;
+  dragEnd.at = 0;
+  if (e.pointerType !== 'mouse' || e.button > 2 || (e.button === 0 && e.shiftKey) || onScrollbar(e)) return;
+  drag = { id: e.pointerId, button: e.button, x: e.clientX, y: e.clientY, moved: false, rx: 0, ry: 0 };
+}
+function dragMove(e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!(e.buttons & BUTTON_BIT[drag.button])) return dragStop();   // let go somewhere we didn't hear about
+  if (!drag.moved) {
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < DRAG_MIN) return;
+    drag.moved = true;
+    try { els.scroller.setPointerCapture(e.pointerId); } catch (err) {}   // keep following outside the sheet
+    document.documentElement.classList.add('panning');
+  }
+  // the sheet follows the mouse; bits of a pixel the scrolling rounds off are kept for the next move
+  const sc = els.scroller, l = sc.scrollLeft, t = sc.scrollTop, wx = scrollX, wy = scrollY;
+  const dx = drag.x - e.clientX + drag.rx, dy = drag.y - e.clientY + drag.ry;
+  scrollBoth(dx, dy);
+  drag.rx = clamp(dx - (sc.scrollLeft - l) - (scrollX - wx), -1, 1);
+  drag.ry = clamp(dy - (sc.scrollTop - t) - (scrollY - wy), -1, 1);
+  drag.x = e.clientX;
+  drag.y = e.clientY;
+}
+function dragStop(e) {
+  if (!drag || (e && e.pointerId !== undefined && e.pointerId !== drag.id)) return;
+  if (drag.moved) dragEnd = { at: performance.now(), button: drag.button };
+  document.documentElement.classList.remove('panning');
+  drag = null;
+}
+const justDragged = buttons => performance.now() - dragEnd.at < 500 && buttons.includes(dragEnd.button);
+
+/* ---------- main update ---------- */
+async function update() {
+  const my = ++ticket;
+  if (!window.marked) return setStatus('Could not load the Markdown library - check your internet and reload.', 'bad');
+  const raw = els.src.value.replace(/\r\n?/g, '\n');
+  const first = (raw.split('\n').find(l => l.trim() && !RULE.test(l)) || '').replace(/^#+\s*/, '').trim();
+  document.title = (els.title.value.trim() || first || 'Cheat Sheet').slice(0, 80);   // default name for Save as PDF
+  const { P } = geometry();
+  if (sheets.length !== P) buildPages(P);
+  els.out.style.setProperty('--ff', els.font.value);
+  els.out.style.setProperty('--lh', String(num(els.lh, 1.15, 0.9, 2)));
+  els.out.style.setProperty('--li', num(els.indent, 0.35, 0, 2) + 'em');
+  els.out.style.setProperty('--hs', els.hsize.value);
+  const map = [];
+  const md = els.tidy.checked ? tidy(raw, map) : raw;
+  const chunks = md.split(/^[ \t]*\\pagebreak[ \t]*$/m);
+  // "Same font size" lets the text flow across the page break, so one size can fill both sides
+  split = P === 2 && chunks.length > 1 && !els.same.checked;
+  const texts = split ? [chunks[0], chunks.slice(1).join('\n')] : [chunks.join('\n')];
+  const origins = partOrigins(md, els.tidy.checked ? map : null, texts);
+  parts = texts.map((_, i) => ({ el: sheets[i], span: split ? 1 : P }));
+  rendered = { src: raw, starts: lineStarts(raw), math: !!(els.math.checked && window.katex) };
+  try {
+    let c = 0;
+    parts.forEach((p, i) => {
+      p.el.innerHTML = toHTML(texts[i], origins[i]) + '<div class="end"></div>';
+      p.el.querySelectorAll('pre > code.language-diagram').forEach(code => code.parentElement.classList.add('diagram'));
+      polish(p.el);
+      if (els.terms.checked) markTerms(p.el);
+      if (els.colors.checked) c = colorize(p.el, c);
+    });
+  } catch (e) { return setStatus('Could not read the notes: ' + e.message, 'bad'); }
+  if (!split) for (let i = 1; i < sheets.length; i++) sheets[i].innerHTML = '';
+  applyLayout(lastN);
+  parts.forEach(p => setSize(p.el, num(els.size, 7, MIN_PT, 20)));
+  setStatus('Fitting...', '');
+  // wait for fonts and pictures so the measurements are real
+  const loads = [];
+  parts.forEach(p => p.el.querySelectorAll('img').forEach(img => {
+    if (!img.complete) loads.push(new Promise(r => { img.onload = img.onerror = r; }));
+  }));
+  loads.push(document.fonts.load('400 10pt ' + els.font.value), document.fonts.load('700 10pt ' + els.font.value));
+  await Promise.race([Promise.all(loads).catch(() => {}), wait(3000)]);
+  void sheets[0].offsetHeight;
+  await Promise.race([document.fonts.ready, wait(3000)]);
+  if (my !== ticket) return; // a newer edit is already being processed
+
+  const { N, sizes } = chooseLayout();
+  applyLayout(N);
+  const results = parts.map((p, i) => {
+    let s = sizes[i];
+    fitWide(p, N); setSize(p.el, s);
+    let r = measure(p, N);
+    if (els.auto.checked) {
+      while (!r.fits && s > MIN_PT) { s = Math.max(MIN_PT, Math.round((s - 0.05) * 20) / 20); setSize(p.el, s); r = measure(p, N); }
+    }
+    return { s, r };
+  });
+  if (els.auto.checked) els.size.value = results[0].s;
+  lastN = N;
+  if (!split) for (let i = 1; i < sheets.length; i++) {
+    sheets[i].innerHTML = sheets[0].innerHTML;
+    sheets[i].style.setProperty('--fs', results[0].s + 'pt');
+  }
+  const label = i => split ? (i ? 'back' : 'front') : (P === 1 ? '1 side' : '2 sides');
+  const tiny = Math.min(Infinity, ...parts.flatMap(p =>
+    [...p.el.querySelectorAll('pre.diagram')].map(d => parseFloat(getComputedStyle(d).fontSize) * 0.75)));
+  if (results.every(x => x.r.fits)) {
+    setStatus(`Fits: ${results.map((x, i) => `${label(i)} ${x.s}pt (${x.r.used} of ${x.r.total} columns)`).join(', ')}, ${N} columns per page` +
+              (results.some(x => x.s < 5.5) ? ' - very small, consider trimming' : '') +
+              (tiny < 6 ? ` - smallest drawing ${tiny.toFixed(1)}pt` : ''), 'ok');
+  } else {
+    setStatus(`Too long: ${results.map((x, i) => `${label(i)} needs about ${x.r.used} of ${x.r.total} columns`).join(', ')}. ` +
+              (els.auto.checked ? 'Trim some content or shrink the margins.' : 'Lower the size or tick Auto-fit.'), 'bad');
+  }
+  save();
+}
+
+/* ---------- saving, loading, watching, events ---------- */
+const FIELDS = ['title','pagesN','cols','font','auto','size','margin','colors','duo','lh','indent','hsize',
+                'tidy','terms','pretty','breaks','math','same','tapjump'];
+function save() {
+  try {
+    const s = { src: els.src.value, zoom: shown.mode };
+    FIELDS.forEach(k => { s[k] = els[k].type === 'checkbox' ? els[k].checked : els[k].value; });
+    localStorage.setItem(KEY, JSON.stringify(s));
+  } catch (e) {}
+}
+function restore() {
+  try {
+    let s = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (!s) { // carry your text over from the first version, if you used it
+      const old = JSON.parse(localStorage.getItem('cheatsheet-fitter') || 'null');
+      if (old && typeof old.src === 'string' && !old.src.startsWith('# Sample Cheat Sheet')) s = { src: old.src };
+    }
+    if (!s) return;
+    if (typeof s.src === 'string') els.src.value = s.src;
+    if (s.zoom === 'width' || s.zoom === 'page' || (typeof s.zoom === 'number' && s.zoom > 0)) shown.mode = s.zoom;
+    FIELDS.forEach(k => {
+      if (!(k in s)) return;
+      const el = els[k];
+      if (el.type === 'checkbox') el.checked = !!s[k];
+      else if (el.tagName === 'SELECT') { if ([...el.options].some(o => o.value === s[k])) el.value = s[k]; }
+      else el.value = s[k];
+    });
+  } catch (e) {}
+}
+
+function schedule(ms = 0) {
+  clearTimeout(timer);
+  timer = setTimeout(() => { timer = null; pending = update(); }, ms);
+}
+async function loadFile(f) { watched = null; els.watchInfo.textContent = ''; els.src.value = await f.text(); schedule(); }
+
+// Open & watch (Chrome/Edge): re-read the file whenever it changes on disk.
+async function pull() {
+  if (!watched) return;
+  try {
+    const f = await watched.getFile();
+    if (f.lastModified === stamp) return;
+    stamp = f.lastModified;
+    els.src.value = await f.text();
+    els.watchInfo.textContent = `Watching ${f.name}: save it in your editor and the sheet updates by itself.`;
+    schedule();
+  } catch (e) {}   // file busy or moved; try again on the next check
+}
+if ('showOpenFilePicker' in window) els.watch.hidden = false;
+els.watch.addEventListener('click', async () => {
+  try {
+    [watched] = await window.showOpenFilePicker({ types: [{ description: 'Notes', accept: { 'text/plain': ['.txt', '.md', '.markdown'] } }] });
+    stamp = 0;
+    await pull();
+  } catch (e) { if (e.name !== 'AbortError') setStatus('Could not open that file: ' + e.message, 'bad'); }
+});
+setInterval(() => { if (!document.hidden) pull(); }, 1500);
+
+// "Only blue + red" needs Colors on; turning Colors off turns it off too.
+els.duo.addEventListener('change', () => { if (els.duo.checked) els.colors.checked = true; });
+els.colors.addEventListener('change', () => { if (!els.colors.checked) els.duo.checked = false; });
+
+els.src.addEventListener('input', () => schedule(500));
+['pagesN', 'cols', 'font', 'auto', 'colors', 'duo', 'hsize', 'tidy', 'terms', 'pretty', 'breaks', 'math', 'same']
+  .forEach(k => els[k].addEventListener('change', () => schedule()));
+['margin', 'lh', 'indent', 'title'].forEach(k => els[k].addEventListener('input', () => schedule(300)));
+els.size.addEventListener('input', () => { if (!els.auto.checked) schedule(200); });
+els.auto.addEventListener('change', () => { els.size.disabled = els.auto.checked; });
+els.file.addEventListener('change', () => { if (els.file.files[0]) loadFile(els.file.files[0]); });
+els.src.addEventListener('dragover', e => e.preventDefault());
+els.src.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) { e.preventDefault(); loadFile(f); } });
+els.toMd.addEventListener('click', () => { els.src.value = tidy(els.src.value.replace(/\r\n?/g, '\n')); schedule(); });
+document.fonts.addEventListener('loadingdone', () => schedule(100));
+els.print.addEventListener('click', async () => {
+  if (timer) { clearTimeout(timer); timer = null; pending = update(); }
+  await pending;
+  window.print();
+});
+
+// Tap the sheet -> cursor in your notes; Show on sheet (or Ctrl/Cmd+Enter in the notes) -> back to the sheet.
+els.out.addEventListener('click', onSheetTap);
+els.locate.addEventListener('click', showOnSheet);
+els.src.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); showOnSheet(); }
+});
+els.tapjump.addEventListener('change', () => { document.body.classList.toggle('tapjump', els.tapjump.checked); save(); });
+
+// Zoom: the bar's buttons, or Ctrl+scroll / a trackpad pinch over the pages (Chrome, Edge and Firefox send a pinch
+// as Ctrl+scroll; Safari on a Mac sends gesture events). Over the menu, Ctrl+scroll still zooms the whole page.
+els.zIn.addEventListener('click', () => stepZoom(1));
+els.zOut.addEventListener('click', () => stepZoom(-1));
+els.zPct.addEventListener('click', () => applyZoom(1));
+els.zWidth.addEventListener('click', () => applyZoom('width'));
+els.zPage.addEventListener('click', () => applyZoom('page'));
+els.view.addEventListener('wheel', e => {
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  const px = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
+  zoomGesture(shown.z * clamp(Math.exp(-px / 100), 0.8, 1.25),
+              els.scroller.contains(e.target) ? { x: e.clientX, y: e.clientY } : null);
+}, { passive: false });
+if ('ongesturechange' in window && !navigator.maxTouchPoints) {
+  let start = 1;
+  els.view.addEventListener('gesturestart', e => { e.preventDefault(); start = shown.z; });
+  els.view.addEventListener('gesturechange', e => {
+    e.preventDefault();
+    zoomGesture(start * e.scale, isFinite(e.clientX) ? { x: e.clientX, y: e.clientY } : null);
+  });
+  els.view.addEventListener('gestureend', e => e.preventDefault());
+}
+// Drag the sheet around (see dragStart). The press itself must not start a text selection, middle-button
+// auto-scroll or dragging a link away; the click (or right-button menu) that ends a drag is swallowed.
+els.scroller.addEventListener('pointerdown', dragStart);
+els.scroller.addEventListener('mousedown', e => {
+  if (downType === 'mouse' && drag && e.button === drag.button && e.button !== 2) e.preventDefault();
+});
+els.scroller.addEventListener('dragstart', e => { if (drag) e.preventDefault(); });
+window.addEventListener('pointermove', dragMove);
+window.addEventListener('pointerup', dragStop, true);
+window.addEventListener('pointercancel', dragStop, true);
+window.addEventListener('blur', () => dragStop());
+window.addEventListener('click', e => {
+  if (justDragged([0])) { e.stopPropagation(); e.preventDefault(); dragEnd.at = 0; }
+}, true);
+window.addEventListener('auxclick', e => { if (justDragged([1, 2])) { e.stopPropagation(); e.preventDefault(); } }, true);
+window.addEventListener('contextmenu', e => {
+  if (justDragged([2])) { e.preventDefault(); dragEnd.at = 0; }   // a right-button drag just ended (Windows)
+  else if (drag && !drag.moved) dragStop();   // the menu opens as you press (Mac, Linux): that press isn't a drag
+}, true);
+new ResizeObserver(sizeBox).observe(els.out);
+new ResizeObserver(refit).observe(els.scroller);
+window.addEventListener('resize', () => { measureScrollbar(); refit(); });   // browser zoom changes it too
+measureScrollbar();
+
+restore();
+document.body.classList.toggle('tapjump', els.tapjump.checked);
+els.size.disabled = els.auto.checked;
+applyZoom(shown.mode, false);
+room = roomKey();
+pending = update();
+</script>
+</body>
+</html>
